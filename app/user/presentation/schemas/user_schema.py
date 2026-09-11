@@ -14,7 +14,21 @@ class UserCreateSchema(BaseModel):
     restaurant_id: int | None = None
 
 
+class UserLoginSchema(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
+
+
+class UserChangePasswordSchema(BaseModel):
+    password: str = Field(min_length=8, max_length=128)
+
+
 class UserUpdateSchema(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={"example": {"name": "Joan"}},
+    )
+
     name: str | None = Field(default=None, min_length=1, max_length=150)
     email: EmailStr | None = None
     password: str | None = Field(default=None, min_length=8, max_length=128)

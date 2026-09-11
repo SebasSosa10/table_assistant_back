@@ -19,3 +19,4 @@ class UserModel(Base):
     updated_at = Column(DateTime)
 
     restaurant = relationship("RestaurantModel", back_populates="users")
+    conversations = relationship("ConversationModel", back_populates="user")
