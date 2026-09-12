@@ -66,7 +66,7 @@ class ConversationResponseSchema(BaseModel):
             restaurant_id=conversation.restaurant_id,
             table_id=conversation.table_id,
             user_id=conversation.user_id,
-            session_id=conversation.session_id,
+            session_id=str(conversation.session_id),
             status=conversation.status,
             created_at=conversation.created_at,
             updated_at=conversation.updated_at,

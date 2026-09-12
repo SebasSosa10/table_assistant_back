@@ -64,3 +64,9 @@ class UserResponseSchema(BaseModel):
             created_at=user.created_at,
             updated_at=user.updated_at,
         )
+
+
+class LoginResponseSchema(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponseSchema
