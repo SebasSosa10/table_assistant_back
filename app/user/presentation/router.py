@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
 
-from db.session import get_db
+from shared.auth.jwt import create_access_token
 from shared.exceptions import ConflictError, NotFoundError, UnauthorizedError
 from user.application.change_password import ChangePassword
 from user.application.create_user import CreateUser
@@ -11,10 +10,11 @@ from user.application.get_users import GetUsers
 from user.application.login_user import LoginUser
 from user.application.search_users import SearchUsers
 from user.application.update_user import UpdateUser
-from user.domain.entities.user import UserRole
+from user.domain.entities.user import User, UserRole
 from user.domain.ports.user_repository import UserRepository
-from user.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
+from user.presentation.deps import get_current_user, get_user_repository
 from user.presentation.schemas.user_schema import (
+    LoginResponseSchema,
     UserChangePasswordSchema,
     UserCreateSchema,
     UserLoginSchema,
@@ -23,10 +23,6 @@ from user.presentation.schemas.user_schema import (
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-
-def get_user_repository(session: Session = Depends(get_db)) -> UserRepository:
-    return UserRepositoryImpl(session)
 
 
 @router.post("", response_model=UserResponseSchema, status_code=status.HTTP_201_CREATED)
@@ -48,11 +44,11 @@ def create_user(
     return UserResponseSchema.from_entity(user)
 
 
-@router.post("/login", response_model=UserResponseSchema)
+@router.post("/login", response_model=LoginResponseSchema)
 def login_user(
     payload: UserLoginSchema,
     repository: UserRepository = Depends(get_user_repository),
-) -> UserResponseSchema:
+) -> LoginResponseSchema:
     try:
         user = LoginUser(repository).execute(
             email=payload.email,
@@ -63,12 +59,26 @@ def login_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=exc.message,
         ) from exc
-    return UserResponseSchema.from_entity(user)
+    token = create_access_token(
+        user_id=user.id,
+        email=user.email,
+        role=user.role.value,
+    )
+    return LoginResponseSchema(
+        access_token=token,
+        user=UserResponseSchema.from_entity(user),
+    )
+
+
+@router.get("/me", response_model=UserResponseSchema)
+def get_me(current_user: User = Depends(get_current_user)) -> UserResponseSchema:
+    return UserResponseSchema.from_entity(current_user)
 
 
 @router.get("", response_model=list[UserResponseSchema])
 def get_users(
     repository: UserRepository = Depends(get_user_repository),
+    _current_user: User = Depends(get_current_user),
 ) -> list[UserResponseSchema]:
     users = GetUsers(repository).execute()
     return [UserResponseSchema.from_entity(user) for user in users]
@@ -82,6 +92,7 @@ def search_users(
     restaurant_id: int | None = Query(default=None),
     is_active: bool | None = Query(default=None),
     repository: UserRepository = Depends(get_user_repository),
+    _current_user: User = Depends(get_current_user),
 ) -> list[UserResponseSchema]:
     users = SearchUsers(repository).execute(
         name=name,
@@ -97,6 +108,7 @@ def search_users(
 def get_user(
     user_id: int,
     repository: UserRepository = Depends(get_user_repository),
+    _current_user: User = Depends(get_current_user),
 ) -> UserResponseSchema:
     try:
         user = GetUser(repository).execute(user_id)
@@ -110,6 +122,7 @@ def change_password(
     user_id: int,
     payload: UserChangePasswordSchema,
     repository: UserRepository = Depends(get_user_repository),
+    _current_user: User = Depends(get_current_user),
 ) -> UserResponseSchema:
     try:
         user = ChangePassword(repository).execute(
@@ -126,6 +139,7 @@ def update_user(
     user_id: int,
     payload: UserUpdateSchema,
     repository: UserRepository = Depends(get_user_repository),
+    _current_user: User = Depends(get_current_user),
 ) -> UserResponseSchema:
     data = payload.model_dump(exclude_unset=True)
     if not data:
@@ -146,6 +160,7 @@ def update_user(
 def delete_user(
     user_id: int,
     repository: UserRepository = Depends(get_user_repository),
+    _current_user: User = Depends(get_current_user),
 ) -> None:
     try:
         DeleteUser(repository).execute(user_id)

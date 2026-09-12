@@ -22,6 +22,17 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"
 
+    jwt_secret: str = "cambia-esta-clave-jwt"
+    jwt_expire_minutes: int = 1440
+    cors_origins: str = (
+        "http://localhost:5173,http://localhost:3000,http://localhost:8080,"
+        "http://127.0.0.1:5173,http://127.0.0.1:3000"
+    )
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
     @property
     def database_url(self) -> str:
         return (
