@@ -45,7 +45,7 @@ class ConversationRepositoryImpl(ConversationRepository):
             restaurant_id=model.restaurant_id,
             table_id=model.table_id,
             user_id=model.user_id,
-            session_id=model.session_id,
+            session_id=str(model.session_id),
             status=ConversationStatus(model.status),
             created_at=model.created_at,
             updated_at=model.updated_at,
