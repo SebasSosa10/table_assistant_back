@@ -26,6 +26,11 @@ class UserRepositoryImpl(UserRepository):
         model = self.session.scalar(stmt)
         return self._to_entity(model) if model else None
 
+    def get_all(self) -> list[User]:
+        stmt = select(UserModel).order_by(UserModel.created_at.desc())
+        models = self.session.scalars(stmt).all()
+        return [self._to_entity(model) for model in models]
+
     def search(
         self,
         name: str | None = None,
@@ -82,13 +87,27 @@ class UserRepositoryImpl(UserRepository):
             name=model.name,
             email=model.email,
             password_hash=model.password_hash,
-            role=UserRole(model.role),
+            role=self._parse_role(model.role),
             phone=model.phone,
             restaurant_id=model.restaurant_id,
             is_active=model.is_active,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
+
+    def _parse_role(self, value: str) -> UserRole:
+        aliases = {
+            "admin": UserRole.ADMIN,
+            "manager": UserRole.ADMINISTRATOR,
+            "waiter": UserRole.WAITER,
+        }
+        try:
+            return UserRole(value)
+        except ValueError:
+            role = aliases.get((value or "").lower())
+            if role is None:
+                raise
+            return role
 
     def _to_model(self, user: User) -> UserModel:
         return UserModel(

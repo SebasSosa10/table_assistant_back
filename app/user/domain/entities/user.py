@@ -4,9 +4,11 @@ from enum import StrEnum
 
 
 class UserRole(StrEnum):
-    ADMIN = "admin"
-    MANAGER = "manager"
-    WAITER = "waiter"
+    ADMIN = "Admin"
+    OWNER = "Dueño"
+    ADMINISTRATOR = "Administrador"
+    WAITER = "Mesero"
+    CUSTOMER = "Cliente"
 
 
 @dataclass

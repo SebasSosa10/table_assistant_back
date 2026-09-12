@@ -17,6 +17,10 @@ class UserRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_all(self) -> list[User]:
+        raise NotImplementedError
+
+    @abstractmethod
     def search(
         self,
         name: str | None = None,
